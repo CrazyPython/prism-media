@@ -14,11 +14,12 @@ class VINT {
   }
 
   static serialize(n) {
-    const bitsRequired = Math.ceil(Math.log2(n));
-    const vintWidth = Math.ceil(bitsRequired / 8) - 1;
-    const buffer = Buffer.alloc(vintWidth + 1);
-    n += (0xFF >> (7 - vintWidth)) << bitsRequired;
-    for (let i = 0; i < vintWidth; i++) n ^= 1 << (bitsRequired + vintWidth - i);
+    const nBits = Math.ceil(Math.log2(n)) || 1;
+    let nBytes = Math.ceil(nBits / 8);
+    const nFreeBits = 8 - (nBits % 8);
+    if (nBytes > nFreeBits) nBytes++;
+    n |= 1 << (7 * nBytes);
+    const buffer = Buffer.alloc(nBytes);
     buffer.writeUIntBE(n, 0, buffer.length);
     return buffer;
   }
