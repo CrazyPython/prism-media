@@ -11,6 +11,8 @@ module.exports = {
   OggOpusMuxer: require('./muxers/OggOpus'),
   WebmOpusDemuxer: require('./demuxers/WebmOpus'),
   WebmVorbisDemuxer: require('./demuxers/WebmVorbis'),
+  EBML: require('./util/EBML'),
+  VINT: require('./util/VINT'),
 };
 
 exp(require('./transformers/PCMVolume'));
