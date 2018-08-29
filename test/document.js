@@ -1,13 +1,10 @@
 const prism = require('../');
-const { Document, Tag } = prism.EBML;
+const { Document, Tag, Types } = prism.EBML;
 const fs = require('fs');
-
-const sampling = Buffer.alloc(4);
-sampling.writeFloatBE(48);
 
 const document = new Document({
   docType: 'webm',
-  docTypeVersion: 2,
+  docTypeVersion: 4,
   docTypeReadVersion: 2,
 });
 
@@ -18,8 +15,9 @@ fs.createReadStream('/home/hydrabolt/Downloads/audio.webm')
 const segment = new Tag('Segment', [
   new Tag('Info', [
     new Tag('TimecodeScale', 1000000),
-    new Tag('MuxingApp', 'amishshah/prism'),
-    new Tag('WritingApp', 'amishshah/prism'),
+    new Tag('MuxingApp', 'amishshahprism'),
+    new Tag('WritingApp', 'amishshahprism'),
+    new Tag('Duration', Types.float(1000)),
   ]),
   new Tag('Tracks', [
     new Tag('TrackEntry', [
@@ -32,10 +30,12 @@ const segment = new Tag('Segment', [
       new Tag('TrackType', 2),
       new Tag('Audio', [
         new Tag('Channels', 2),
-        new Tag('SamplingFrequency', sampling),
+        new Tag('SamplingFrequency', Types.float(48)),
         new Tag('BitDepth', 16000),
       ]),
-      new Tag('CodecPrivate', Buffer.from([...'OpusHead'].map(x => x.charCodeAt(0)))),
+      new Tag('CodecPrivate', Buffer.from([
+        0x4F, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64, 0x01, 0x02, 0x38, 0x01, 0x80, 0xBB, 0, 0, 0, 0, 0,
+      ])),
     ]),
   ]),
 ]);
@@ -54,6 +54,7 @@ for (let i = 0; i < 100; i++) {
   cluster.add(tag);
 }
 
+segment.add(cluster);
 document.add(segment);
 
 const out = document.serialize();

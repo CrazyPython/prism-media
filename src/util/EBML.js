@@ -125,4 +125,11 @@ module.exports = {
   Tag,
   Elements,
   Document,
+  Types: {
+    float(n, octets = 4) {
+      const buffer = Buffer.alloc(octets);
+      buffer.writeFloatBE(n);
+      return buffer;
+    },
+  },
 };
