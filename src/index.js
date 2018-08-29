@@ -13,6 +13,7 @@ module.exports = {
   WebmVorbisDemuxer: require('./demuxers/WebmVorbis'),
   EBML: require('./util/EBML'),
   VINT: require('./util/VINT'),
+  OpusHead: require('./util/OpusHead'),
 };
 
 exp(require('./transformers/PCMVolume'));

@@ -8,16 +8,16 @@ const document = new Document({
   docTypeReadVersion: 2,
 });
 
-fs.createReadStream('/home/hydrabolt/Downloads/audio.webm')
-  .pipe(new prism.WebmOpusDemuxer())
-  .pipe(fs.createWriteStream('/tmp/o'));
+const str = fs.createReadStream('/home/hydrabolt/Downloads/audio.webm')
+  .pipe(new prism.WebmOpusDemuxer());
+
+str.on('data', c => addFrame(c));
 
 const segment = new Tag('Segment', [
   new Tag('Info', [
     new Tag('TimecodeScale', 1000000),
     new Tag('MuxingApp', 'amishshahprism'),
     new Tag('WritingApp', 'amishshahprism'),
-    new Tag('Duration', Types.float(1000)),
   ]),
   new Tag('Tracks', [
     new Tag('TrackEntry', [
@@ -30,12 +30,10 @@ const segment = new Tag('Segment', [
       new Tag('TrackType', 2),
       new Tag('Audio', [
         new Tag('Channels', 2),
-        new Tag('SamplingFrequency', Types.float(48)),
-        new Tag('BitDepth', 16000),
+        new Tag('SamplingFrequency', Types.float(48000)),
+        new Tag('BitDepth', 32000),
       ]),
-      new Tag('CodecPrivate', Buffer.from([
-        0x4F, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64, 0x01, 0x02, 0x38, 0x01, 0x80, 0xBB, 0, 0, 0, 0, 0,
-      ])),
+      new Tag('CodecPrivate', prism.OpusHead.serialize()),
     ]),
   ]),
 ]);
@@ -43,8 +41,22 @@ const segment = new Tag('Segment', [
 const cluster = new Tag('Cluster', [
   new Tag('Timecode', 0),
 ]);
-for (let i = 0; i < 100; i++) {
-  const frame = fs.readFileSync(`./test/audio/chunks/Chunk${i}.raw`);
+
+let i = 0;
+function addFrame(frame) {
+  if (i > 1600) return;
+  if (i === 1600) {
+    segment.add(cluster);
+    document.add(segment);
+    const out = document.serialize();
+    
+    /* eslint-disable no-console */
+    
+    fs.writeFileSync('./test/audio/doc.webm', out);
+    i++;
+    console.log('written');
+    return;
+  }
   const buffer = Buffer.alloc(frame.length + 4);
   buffer[0] = 0x81;
   buffer.writeInt16BE(i * 20, 1);
@@ -52,16 +64,7 @@ for (let i = 0; i < 100; i++) {
   frame.copy(buffer, 4);
   const tag = new Tag('SimpleBlock', buffer);
   cluster.add(tag);
+  i++;
 }
-
-segment.add(cluster);
-document.add(segment);
-
-const out = document.serialize();
-
-/* eslint-disable no-console */
-console.log(out);
-
-fs.writeFileSync('./test/audio/doc.webm', out);
 
 // Then try running `mkvinfo audio/doc.webm`
