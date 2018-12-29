@@ -1,5 +1,6 @@
-const ChildProcess = require('child_process');
+//const ChildProcess = require('child_process');
 const { Duplex } = require('stream');
+const { Readable } = require('stream');
 let FFMPEG_COMMAND = null;
 
 class FFmpegTransform extends Duplex {
@@ -50,7 +51,37 @@ module.exports = FFmpegTransform;
 function createFFmpeg(options) {
   let args = options.args || [];
   if (!options.args.includes('-i')) args = ['-i', '-'].concat(args);
-  return ChildProcess.spawn(selectFFmpegCommand(), args.concat(['pipe:1']));
+  return (() => {
+    let stdout = '', stderr = ''
+    let isDead = false
+    let ret = ffmpeg({
+      arguments: args.concat(['pipe:1']);
+      print: function(data) { stdout += data + "\n"; },
+      printErr: function(data) { stderr += data + "\n"; },
+      onExit: function(code) {
+      },
+     });
+    FS.init(() => isDead ? null :'a', console.log, console.log)
+    ret.stdout = new Readable({
+        read(size) {
+          this.push(stdout)
+        }
+      });
+    ret.stdin = new Writable({
+        write(buffer, encoding, callback) {
+           FS.write(FS.open('/dev/stdin', 'w'), buffer, 0, buffer.length)
+          callback()
+        },
+        writev(chunks, callback) {
+          for(let buffer of chunks) {
+            FS.write(FS.open('/dev/stdin', 'w'), buffer, 0, buffer.length)
+          }
+          callback()
+        }
+    });
+    ret.kill = () => isDead = true
+    return ret
+  })();
 }
 
 function selectFFmpegCommand() {
